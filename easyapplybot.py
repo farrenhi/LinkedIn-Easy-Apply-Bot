@@ -101,7 +101,10 @@ class EasyApplyBot:
             "radio_select": (By.CSS_SELECTOR, "input[type='radio']"), #need to append [value={}].format(answer)
             "multi_select": (By.XPATH, "//*[contains(@id, 'text-entity-list-form-component')]"),
             "text_select": (By.CLASS_NAME, "artdeco-text-input--input"),
-            "2fa_oneClick": (By.ID, 'reset-password-submit-button')
+            "2fa_oneClick": (By.ID, 'reset-password-submit-button'),
+            "next": (By.CSS_SELECTOR, "button[aria-label='Continue to next step']"),
+            "done": (By.CSS_SELECTOR, "button.artdeco-button.artdeco-button--2.artdeco-button--primary.ember-view.mlA.block"),
+            
         }
 
         #initialize questions and answers file
@@ -191,7 +194,8 @@ class EasyApplyBot:
             if combo not in combos:
                 combos.append(combo)
                 log.info(f"Applying to {position}: {location}")
-                location = "&location=" + location
+                # location = "&location=" + location
+                location = "&location=United States"
                 self.applications_loop(position, location)
             if len(combos) > 500:
                 break
@@ -259,10 +263,11 @@ class EasyApplyBot:
                 else:
                     self.browser, jobs_per_page = self.next_jobs_page(position,
                                                                       location,
-                                                                      jobs_per_page)
+                                                                      jobs_per_page + 25)
 
                 count_job = 0
                 # self.avoid_lock() #fking annoying
+                print("jobIDs:", jobIDs)
                 for jobID in jobIDs:
                     self.apply_to_job(jobID)
                     count_job += 1
@@ -270,7 +275,7 @@ class EasyApplyBot:
 
                 self.browser, jobs_per_page = self.next_jobs_page(position,
                                                                 location,
-                                                                jobs_per_page)
+                                                                jobs_per_page + 25)
 
             except Exception as e:
                 print(e)
@@ -303,6 +308,8 @@ class EasyApplyBot:
                 result: bool = self.send_resume()
                 if result:
                     string_easy = "*Applied: Sent Resume"
+
+                    
                 else:
                     string_easy = "*Did not apply: Failed to send Resume"
 
@@ -363,12 +370,13 @@ class EasyApplyBot:
 
     def fill_out_fields(self):
         fields = self.browser.find_elements(By.CLASS_NAME, "jobs-easy-apply-form-section__grouping")
-        for field in fields:
+        # skip this because linkedin would autofill in phone number
+        # for field in fields:
 
-            if "Mobile phone number" in field.text:
-                field_input = field.find_element(By.TAG_NAME, "input")
-                field_input.clear()
-                field_input.send_keys(self.phone_number)
+        #     if "Mobile phone number" in field.text:
+        #         field_input = field.find_element(By.TAG_NAME, "input")
+        #         field_input.clear()
+        #         field_input.send_keys(self.phone_number)
 
 
         return
@@ -409,11 +417,11 @@ class EasyApplyBot:
             while loop < 2:
                 time.sleep(1)
                 # Upload resume
-                if is_present(upload_resume_locator):
-                    #upload_locator = self.browser.find_element(By.NAME, "file")
-                    resume_locator = self.browser.find_element(By.XPATH, "//*[contains(@id, 'jobs-document-upload-file-input-upload-resume')]")
-                    resume = self.uploads["Resume"]
-                    resume_locator.send_keys(resume)
+                # if is_present(upload_resume_locator):
+                #     #upload_locator = self.browser.find_element(By.NAME, "file")
+                #     resume_locator = self.browser.find_element(By.XPATH, "//*[contains(@id, 'jobs-document-upload-file-input-upload-resume')]")
+                #     resume = self.uploads["Resume"]
+                #     resume_locator.send_keys(resume)
                 # Upload cover letter if possible
                 if is_present(upload_cv_locator):
                     cv = self.uploads["Cover Letter"]
@@ -434,6 +442,10 @@ class EasyApplyBot:
                         button.click()
                         log.info("Application Submitted")
                         submitted = True
+                        # click done!
+                        time.sleep(1)
+                        self.avoid_lock()                        
+                        
                         break
 
                 elif len(self.get_elements("error")) > 0:
@@ -441,7 +453,7 @@ class EasyApplyBot:
                     # for element in elements:
                     #self.process_questions()
                     log.info("please answer the questions")
-                    time.sleep(15)
+                    time.sleep(3)
                     loop +=1
                     # self.process_questions()
 
@@ -461,7 +473,7 @@ class EasyApplyBot:
                     elements = self.get_elements("follow")
                     for element in elements:
                         button = self.wait.until(EC.element_to_be_clickable(element))
-                        button.click()
+                        button.click()                                    
 
         except Exception as e:
             log.info(e)
@@ -474,6 +486,7 @@ class EasyApplyBot:
         form = self.get_elements("fields") #self.browser.find_elements(By.CLASS_NAME, "jobs-easy-apply-form-section__grouping")
         for field in form:
             question = field.text
+            print(question)
             answer = self.ans_question(question.lower())
             #radio button
             if self.is_present(self.locator["radio_select"]):
@@ -517,7 +530,9 @@ class EasyApplyBot:
 
     def ans_question(self, question): #refactor this to an ans.yaml file
         answer = None
-        if "how many" in question:
+        if "how many years" in question:
+            answer = 6
+        elif "how many" in question:
             answer = random.randint(3, 12)
         elif "experience" in question:
             answer = random.randint(3, 12)
@@ -578,19 +593,20 @@ class EasyApplyBot:
         return page
 
     def avoid_lock(self) -> None:
-        x, _ = pyautogui.position()
-        pyautogui.moveTo(x + 200, pyautogui.position().y, duration=1.0)
-        pyautogui.moveTo(x, pyautogui.position().y, duration=0.5)
-        pyautogui.keyDown('ctrl')
-        pyautogui.press('esc')
-        pyautogui.keyUp('ctrl')
+        # x, _ = pyautogui.position()
+        # pyautogui.moveTo(x + 200, pyautogui.position().y, duration=1.0)
+        # pyautogui.moveTo(x, pyautogui.position().y, duration=0.5)
+        # pyautogui.keyDown('ctrl')
         time.sleep(0.5)
         pyautogui.press('esc')
+        # pyautogui.keyUp('ctrl')
+        # time.sleep(0.5)
+        # pyautogui.press('esc')
 
     def next_jobs_page(self, position, location, jobs_per_page):
         self.browser.get(
             # URL for jobs page
-            "https://www.linkedin.com/jobs/search/?f_LF=f_AL&keywords=" +
+            "https://www.linkedin.com/jobs/search/?f_LF=f_AL&f_TPR=r604800&keywords=" +
             position + location + "&start=" + str(jobs_per_page))
         #self.avoid_lock()
         log.info("Loading next job page?")
