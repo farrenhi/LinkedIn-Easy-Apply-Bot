@@ -148,3 +148,7 @@ venv8/
 quickstart.py
 states.json
 logs
+
+
+# avoid user sensitive info
+config.yaml
