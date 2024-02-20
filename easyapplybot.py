@@ -510,18 +510,29 @@ class EasyApplyBot:
             question = field.text
             answer = self.ans_question(question.lower())
             print("answer is:", answer)
-            # #radio button
-            # if self.is_present(self.locator["radio_select"]):
-            #     try:
-            #         input = field.find_element(By.CSS_SELECTOR, "input[type='radio'][value={}]".format(answer))
-            #         input.execute_script("arguments[0].click();", input)
-            #     except Exception as e:
-            #         log.error(e)
-            #         continue
-            #multi select
             
-            if self.is_present(self.locator["multi_select"]):
-                print("multi-select is true!")
+            #radio button
+            if self.is_present(self.locator["radio_select"]):
+                print("radio-select (circle button) is true!")
+                try:
+                    print("radio answer:", answer)
+                    # input = field.find_element(By.CSS_SELECTOR, 
+                    #                            "input[type='radio'][value='{}']".format(answer))
+                    # input.execute_script("arguments[0].click();", input)
+                    
+                    # element: label (not radio button)
+                    input = field.find_element(By.CSS_SELECTOR, 
+                            "label[data-test-text-selectable-option__label='{}']".format(answer))
+                    input.execute_script("arguments[0].click();", input)
+                    
+
+                except Exception as e:
+                    log.error(e)
+                    continue
+            
+            # multi select
+            elif self.is_present(self.locator["multi_select"]):
+                # print("multi-select is true!")
                 try:
                     input = field.find_element(
                         By.CSS_SELECTOR, 
@@ -532,7 +543,7 @@ class EasyApplyBot:
                     if select is not None:
                         print("select object exists!")
 
-                    if answer == "Yes":
+                    if answer.lower() == "yes":
                         # Select "Yes" from the dropdown by visible text
                         select.select_by_visible_text("Yes")
                         print("selenium just selected yes")
@@ -578,14 +589,16 @@ class EasyApplyBot:
         answer = None
         if "how many years" in question:
             answer = "6"
+        if "how long" in question:
+            answer = "6"
+        elif "are you comfortable" in question:
+            answer = "Yes"
         elif "start" in question:
             answer = "immediately"
         elif "salary" in question:
             answer = "60000"
         elif "city and state?" in question:
             answer = "Redwood City, CA"
-        elif "how many" in question:
-            answer = random.randint(3, 12)
         elif "experience" in question:
             answer = "Yes"
         # elif "sponsor" in question:
@@ -662,7 +675,9 @@ class EasyApplyBot:
     def next_jobs_page(self, position, location, jobs_per_page):
         self.browser.get(
             # URL for jobs page
-            "https://www.linkedin.com/jobs/search/?f_LF=f_AL&f_TPR=r604800&keywords=" +
+            # past 24 hours: r86400
+            # pass one week: r604800
+            "https://www.linkedin.com/jobs/search/?f_LF=f_AL&f_TPR=r86400&keywords=" +
             position + location + "&start=" + str(jobs_per_page))
         #self.avoid_lock()
         log.info("Loading next job page?")
