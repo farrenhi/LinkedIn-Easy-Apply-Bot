@@ -262,16 +262,16 @@ class EasyApplyBot:
                                         continue
                                     else:
                                         jobIDs.append(int(jobID))
-                else:
-                    self.browser, jobs_per_page = self.next_jobs_page(position,
-                                                                      location,
-                                                                      jobs_per_page + 25)
+                # else:
+                #     self.browser, jobs_per_page = self.next_jobs_page(position,
+                #                                                       location,
+                #                                                       jobs_per_page + 25)
 
                 count_job = 0
                 # self.avoid_lock() #fking annoying
                 print("jobIDs:", jobIDs)
                 for jobID in jobIDs:
-                    print(jobID)
+                    print("current job id:", jobID)
                     self.apply_to_job(jobID)
                     print("apply_to_job is done")
                     count_job += 1
@@ -459,6 +459,7 @@ class EasyApplyBot:
                         log.info("Application Submitted")
                         submitted = True                    
                         break
+                    break # do no need to go to error block
 
                 elif len(self.get_elements("error")) > 0:
                     elements = self.get_elements("error")
@@ -467,9 +468,9 @@ class EasyApplyBot:
                     self.process_questions()
                     log.info("please answer the questions")
                     # user_input = input("Please enter a line of text: ")
-                    time.sleep(15)
+                    time.sleep(10)
                     loop +=1
-                    # self.process_questions()
+                    self.process_questions()
 
                 elif len(self.get_elements("next")) > 0:
                     elements = self.get_elements("next")
@@ -492,7 +493,9 @@ class EasyApplyBot:
         except Exception as e:
             log.info(e)
             log.info("cannot apply to this job")
-            raise (e)
+            # infinite loop issue
+            # raise (e)
+            
 
         return submitted
     
@@ -584,9 +587,9 @@ class EasyApplyBot:
         elif "how many" in question:
             answer = random.randint(3, 12)
         elif "experience" in question:
-            answer = random.randint(3, 12)
-        elif "sponsor" in question:
-            answer = "No"
+            answer = "Yes"
+        # elif "sponsor" in question:
+        #     answer = "No"
         elif 'do you ' in question:
             answer = "Yes"
         elif "have you " in question:
