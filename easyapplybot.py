@@ -53,7 +53,7 @@ def setupLogger() -> None:
 class EasyApplyBot:
     setupLogger()
     # MAX_SEARCH_TIME is 10 hours by default, feel free to modify it
-    MAX_SEARCH_TIME = 60 * 60
+    MAX_SEARCH_TIME = 5 * 60 * 60
 
     def __init__(self,
                  username,
@@ -171,7 +171,7 @@ class EasyApplyBot:
             pw_field.send_keys(password)
             time.sleep(1.5)
             login_button.click()
-            time.sleep(5)
+            time.sleep(20)
             # if self.is_present(self.locator["2fa_oneClick"]):
             #     oneclick_auth = self.browser.find_element(by='id', value='reset-password-submit-button')
             #     if oneclick_auth is not None:
@@ -249,9 +249,7 @@ class EasyApplyBot:
                 # links = self.browser.find_elements("xpath",
                 #     '//div[@data-job-id]'
                 # )
-
                     jobIDs = []
-                
                     # children selector is the container of the job cards on the left
                     for link in links:
                             if 'Applied' not in link.text: #checking if applied already
@@ -267,22 +265,34 @@ class EasyApplyBot:
                 #                                                       location,
                 #                                                       jobs_per_page + 25)
 
-                count_job = 0
+                
                 # self.avoid_lock() #fking annoying
-                print("jobIDs:", jobIDs)
+                print("before loop jobIDs:", len(jobIDs), jobIDs)
+                
+                count_job = 1
                 for jobID in jobIDs:
-                    print("current job id:", jobID)
+                    print("current job id:", jobID,
+                          "count_job:", count_job,
+                          "; total jobIDs:", len(jobIDs))
                     self.apply_to_job(jobID)
-                    print("apply_to_job is done")
+                    # print("apply_to_job is done")
                     count_job += 1
+                    if count_job > len(jobIDs):
+                        break
+                print("after jobIDs loop, (next) count_job:", count_job, 
+                      "; total jobIDs:",len(jobIDs))
 
-
-                self.browser, jobs_per_page = self.next_jobs_page(position,
-                                                                location,
-                                                                jobs_per_page + 25)
+                # self.browser, jobs_per_page = self.next_jobs_page(position,
+                #                                                 location,
+                #                                                 jobs_per_page + 25)
 
             except Exception as e:
-                print(e)
+                print("application loop raise", e)
+
+            self.browser, jobs_per_page = self.next_jobs_page(position,
+                                                            location,
+                                                            jobs_per_page + 25)
+            print("jobs_per_page:", jobs_per_page)
 
     def apply_to_job(self, jobID):
         # count_job = 0
@@ -335,7 +345,8 @@ class EasyApplyBot:
         log.info(f"\nPosition {jobID}:\n {self.browser.title} \n {string_easy} \n")
 
         self.write_to_file(button, jobID, self.browser.title, result)
-        pass
+        # pass
+        return
 
 
     def write_to_file(self, button, jobID, browserTitle, result) -> None:
@@ -385,7 +396,7 @@ class EasyApplyBot:
     def fill_out_fields(self):
         # current setting: phone number
         
-        fields = self.browser.find_elements(By.CLASS_NAME, "jobs-easy-apply-form-section__grouping")
+        # fields = self.browser.find_elements(By.CLASS_NAME, "jobs-easy-apply-form-section__grouping")
         # skip this because linkedin would autofill in phone number
         # for field in fields:
 
@@ -468,9 +479,9 @@ class EasyApplyBot:
                     self.process_questions()
                     log.info("please answer the questions")
                     # user_input = input("Please enter a line of text: ")
-                    time.sleep(10)
+                    time.sleep(15)
                     loop +=1
-                    self.process_questions()
+                    # self.process_questions()
 
                 elif len(self.get_elements("next")) > 0:
                     elements = self.get_elements("next")
@@ -496,81 +507,87 @@ class EasyApplyBot:
             # infinite loop issue
             # raise (e)
             
-
         return submitted
     
     def process_questions(self):
         time.sleep(1)
         form = self.get_elements("fields") 
-        
+        print("length of form", len(form))
         # self.browser.find_elements(By.CLASS_NAME, 
         # "jobs-easy-apply-form-section__grouping")
         
         for field in form:
+            # print("field", field)
+            # user_input = input("Please enter a line of text: ")
             question = field.text
             answer = self.ans_question(question.lower())
-            print("answer is:", answer)
+            print("***")
+            # print("question:", question)
+            print(f"question: [[{question}]]")
+            print("---")
+            print("automation answer:", answer)
             
-            #radio button
-            if self.is_present(self.locator["radio_select"]):
-                print("radio-select (circle button) is true!")
-                try:
-                    print("radio answer:", answer)
-                    # input = field.find_element(By.CSS_SELECTOR, 
-                    #                            "input[type='radio'][value='{}']".format(answer))
-                    # input.execute_script("arguments[0].click();", input)
-                    
-                    # element: label (not radio button)
-                    input = field.find_element(By.CSS_SELECTOR, 
-                            "label[data-test-text-selectable-option__label='{}']".format(answer))
-                    input.execute_script("arguments[0].click();", input)
-                    
 
-                except Exception as e:
-                    log.error(e)
-                    continue
-            
-            # multi select
-            elif self.is_present(self.locator["multi_select"]):
-                # print("multi-select is true!")
-                try:
-                    input = field.find_element(
-                        By.CSS_SELECTOR, 
-                        "select[data-test-text-entity-list-form-select='']")
+            # # multi select
+            # if self.is_present(self.locator["multi_select"]):
+            #     print("multi-select is true!")
+            #     try:
+            #         select_input = field.find_element(
+            #             By.CSS_SELECTOR, 
+            #             "select[data-test-text-entity-list-form-select='']")
                     
-                    # Create a Select object
-                    select = Select(input)
-                    if select is not None:
-                        print("select object exists!")
+            #         # Create a Select object
+            #         select = Select(select_input)
+            #         if select is not None:
+            #             print("select object exists!")
 
-                    if answer.lower() == "yes":
-                        # Select "Yes" from the dropdown by visible text
-                        select.select_by_visible_text("Yes")
-                        print("selenium just selected yes")
-                    else:
-                        # Alternatively, you can select "No" by value
-                        select.select_by_value("No")
-                        print("selenium just selected no")
+            #         if answer.lower() == "yes":
+            #             # Select "Yes" from the dropdown by visible text
+            #             select.select_by_visible_text("Yes")
+            #             print("selenium just selected yes")
+            #         else:
+            #             # Alternatively, you can select "No" by value
+            #             select.select_by_value("No")
+            #             print("selenium just selected no")
 
-                except Exception as e:
-                    log.error(e)
-                    continue
+            #     except Exception as e:
+            #         log.error(e)
+            #         continue
                 
             # text box
-            elif self.is_present(self.locator["text_select"]):
-                print("text_selector is true! ")
+            if self.is_present(self.locator["text_select"]):
+                print("text_selector: True")
                 try:
                     # input = field.find_element(self.locator["text_select"])
-                    input = field.find_element(By.CLASS_NAME, 
+                    text_input = field.find_element(By.CLASS_NAME, 
                                                "artdeco-text-input--input")
-                    input.clear()  # Clear any existing text in the input box
-                    input.send_keys(answer)
-                    print("input.send(answer) is done!")
+                    text_input.clear()  # Clear any existing text in the input box
+                    text_input.send_keys(answer)
+                    print("input.send(answer):", answer)
                 except Exception as e:
                     log.error(e)
                     continue
+            
+            # #radio button
+            # elif self.is_present(self.locator["radio_select"]):
+            #     print("radio-select (circle button) is true!")
+            #     try:
+            #         print("radio answer:", answer)
+            #         # input = field.find_element(By.CSS_SELECTOR, 
+            #         #                            "input[type='radio'][value='{}']".format(answer))
+            #         # input.execute_script("arguments[0].click();", input)
+                    
+            #         # element: label (not radio button)
+            #         radio_input = field.find_element(By.CSS_SELECTOR, 
+            #                 "label[data-test-text-selectable-option__label='{}']".format(answer))
+            #         radio_input.execute_script("arguments[0].click();", radio_input)
+                # except Exception as e:
+                #     log.error(e)
+                #     continue
+            
+            
             else:
-                print("pass!")
+                print("text_selector: False")
                 pass
 
             # if "Yes" or "No" in answer: #radio button
@@ -585,36 +602,52 @@ class EasyApplyBot:
             #     input = form.find_element(By.CLASS_NAME, "artdeco-text-input--input")
             #     input.send_keys(answer)
 
-    def ans_question(self, question): #refactor this to an ans.yaml file
+    def ans_question(self, question): 
+        #refactor this to an ans.yaml file
         answer = None
-        if "how many years" in question:
+        # future task: Trie Node for string search!
+        if "how many years" or "how long" in question:
             answer = "6"
-        if "how long" in question:
-            answer = "6"
-        elif "are you comfortable" in question:
+
+        elif "are you able" or "are you local" or "are you open" or "are you comfortable" in question:
             answer = "Yes"
+
+        elif "are you fine" in question:
+            answer = "Yes"
+
+        elif "are you legally" or "are you legal" or "are you authorized" in question:
+            answer = "Yes"
+
+        elif "GPA" or "gpa" or "grade point average" in question:
+            answer = "4"
+            
         elif "start" in question:
             answer = "immediately"
-        elif "salary" in question:
+            
+        elif "salary" or "compensation" in question:
             answer = "60000"
+            
         elif "city and state?" in question:
             answer = "Redwood City, CA"
         elif "experience" in question:
             answer = "Yes"
-        # elif "sponsor" in question:
-        #     answer = "No"
-        elif 'do you ' in question:
+            
+        elif "visa" or "sponsor" or "sponsorship" or "require sponsorship" in question:
+            answer = "No"    
+        elif "US citizen" or "green card" or "us citizen" in question:
             answer = "Yes"
-        elif "have you " in question:
-            answer = "Yes"
-        elif "US citizen" in question:
-            answer = "Yes"
-        elif "are you " in question:
-            answer = "Yes"
-        elif "salary" in question:
-            answer = self.salary
-        elif "can you" in question:
-            answer = "Yes"
+        
+            
+        # elif 'do you ' in question:
+        #     answer = "Yes"
+        # elif "have you " in question:
+        #     answer = "Yes"
+        # elif "are you " in question:
+        #     answer = "Yes"
+        # elif "can you" in question:
+        #     answer = "Yes"            
+            
+
         elif "gender" in question:
             answer = "Male"
         elif "race" in question:
@@ -627,8 +660,7 @@ class EasyApplyBot:
             answer = "Wish not to answer"
         elif "government" in question:
             answer = "I do not wish to self-identify"
-        elif "are you legally" in question:
-            answer = "Yes"
+
         else:
             log.info("Not able to answer question automatically. Please provide answer")
             #open file and document unanswerable questions, appending to it
